@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  xmlns:camunda="http://camunda.org/schema/1.0/bpmn"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  id="Definitions_1"
+                  targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="order-processing" name="Order Processing Workflow" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_1" name="Order Created">
+      <bpmn:outgoing>Flow_StartToPayment</bpmn:outgoing>
+    </bpmn:startEvent>
+    
+    <bpmn:sequenceFlow id="Flow_StartToPayment" sourceRef="StartEvent_1" targetRef="Task_Payment" />
+    
+    <bpmn:serviceTask id="Task_Payment" name="Process Payment" camunda:delegateExpression="${paymentDelegate}">
+      <bpmn:incoming>Flow_StartToPayment</bpmn:incoming>
+      <bpmn:outgoing>Flow_PaymentToGateway</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <bpmn:sequenceFlow id="Flow_PaymentToGateway" sourceRef="Task_Payment" targetRef="Gateway_Payment" />
+    
+    <bpmn:exclusiveGateway id="Gateway_Payment" name="Payment Success?">
+      <bpmn:incoming>Flow_PaymentToGateway</bpmn:incoming>
+      <bpmn:outgoing>Flow_GatewayToKitchen</bpmn:outgoing>
+      <bpmn:outgoing>Flow_GatewayToCancel</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    
+    <bpmn:sequenceFlow id="Flow_GatewayToKitchen" name="Success" sourceRef="Gateway_Payment" targetRef="Task_Kitchen">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${paymentSuccess == true}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    
+    <bpmn:serviceTask id="Task_Kitchen" name="Send to Kitchen" camunda:delegateExpression="${kitchenDelegate}">
+      <bpmn:incoming>Flow_GatewayToKitchen</bpmn:incoming>
+      <bpmn:outgoing>Flow_KitchenToDelivery</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <bpmn:sequenceFlow id="Flow_KitchenToDelivery" sourceRef="Task_Kitchen" targetRef="Task_Delivery" />
+    
+    <bpmn:serviceTask id="Task_Delivery" name="Assign Delivery" camunda:delegateExpression="${deliveryDelegate}">
+      <bpmn:incoming>Flow_KitchenToDelivery</bpmn:incoming>
+      <bpmn:outgoing>Flow_DeliveryToSuccessEnd</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <bpmn:endEvent id="EndEvent_Delivered" name="Delivered">
+      <bpmn:incoming>Flow_DeliveryToSuccessEnd</bpmn:incoming>
+    </bpmn:endEvent>
+    
+    <bpmn:sequenceFlow id="Flow_DeliveryToSuccessEnd" sourceRef="Task_Delivery" targetRef="EndEvent_Delivered" />
+    
+    <bpmn:sequenceFlow id="Flow_GatewayToCancel" name="Failure" sourceRef="Gateway_Payment" targetRef="Task_Cancel">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${paymentSuccess == false}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    
+    <bpmn:serviceTask id="Task_Cancel" name="Cancel Order" camunda:delegateExpression="${cancelOrderDelegate}">
+      <bpmn:incoming>Flow_GatewayToCancel</bpmn:incoming>
+      <bpmn:outgoing>Flow_CancelToFailureEnd</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <bpmn:endEvent id="EndEvent_Cancelled" name="Cancelled">
+      <bpmn:incoming>Flow_CancelToFailureEnd</bpmn:incoming>
+    </bpmn:endEvent>
+    
+    <bpmn:sequenceFlow id="Flow_CancelToFailureEnd" sourceRef="Task_Cancel" targetRef="EndEvent_Cancelled" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="order-processing">
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
