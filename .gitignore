@@ -40,3 +40,8 @@ yarn-error.log*
 *.war
 *.ear
 spring-shell.log
+
+# Large binary files (exceed GitHub's 50MB limit)
+activemq.zip
+*.zip
+scratch/
